@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#define BUFSIZE 1024
+#define SIZE    sizeof(struct sockaddr_in)
+
+int main() {
+    int sockfd;
+    char send1[BUFSIZE];
+	int tem;
+	
+
+    struct sockaddr_in server = {AF_INET, 33333};
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if((sockfd = socket(AF_INET, SOCK_STREAM, 0))==-1) {
+        puts("fail to call socket()"); exit(1);
+    }
+    if(connect(sockfd, (struct sockaddr *)&server, SIZE)==-1) {
+        puts("fail to call connect()"); exit(1);
+    }
+
+
+    while(1) {
+	printf("Do you want to know the temperature?");
+        scanf("%s", send1);  
+	
+      if(write(sockfd, send1, BUFSIZE)>0)
+{
+            
+		if(recv(sockfd,&tem,BUFSIZE,0)>0)
+		{
+			printf("%d  *F\n",tem);
+
+		
+}
+}
+
+ 
+else
+{
+	 puts("server is not operating");
+                break;   
+    }
+
+}
+    return 0;
+
+}
