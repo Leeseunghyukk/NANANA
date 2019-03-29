@@ -1,0 +1,327 @@
+//���׸ӽ�
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include <stdio.h>
+unsigned char segment_data[10]=
+{0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x27,0x7f,0x6f};
+
+volatile int i=0; // segment ��������
+volatile int q=65; 
+volatile int w=64;
+volatile float cal=0;
+volatile int count=0; //���ͽ���
+volatile int cnt=0; //�ӵ�
+volatile int speed=9; //�ӵ�����
+volatile int z=0; //�Ÿ�����
+volatile int x=0; //��������
+volatile int n=0; //��������
+volatile int v=0; //��������
+//�ø������ ����
+void tx0char(char message)
+{
+	while(((UCSR0A>>UDRE0)&0x01)==0);
+	UDR0 = message;
+}
+
+int Putchar(char c)
+{
+	tx0char(c);
+	return c;
+}
+
+int Getchar()
+{	
+	while(((UCSR0A)&0x80)==0);
+	return UDR0;
+}
+ISR(TIMER2_OVF_vect)
+{
+	TCNT2=0x01;
+	q++;
+	if(q==w)
+	{
+		q=0;
+
+		i++;
+	}
+	if(q>w)
+	{
+	} 
+	{
+
+		count++;
+		if(count == speed)
+			count = 0;
+		if(count<cnt)
+		{
+			PORTF=0x01;
+
+		}
+		else
+			PORTF=0x00;
+
+
+		if(cnt>255) //�ִ밪����
+		{cnt=1;}
+		if(speed > 255) //�ִ밪 ����
+		{speed = 1;}
+	}
+}
+ISR(INT0_vect)//���ܼ� Ȯ�� 
+{
+	x=1;
+	if(x+n+v ==3)
+	{  
+		count=0;
+		speed=0;
+		q=74;
+		i=0;
+		z=0;
+		n=0;
+		x=0;
+		v=0;
+
+	}
+}
+ISR(INT1_vect)//���ܼ� Ȯ��
+{
+	n=1;
+	if(x+n+v==3)
+	{  
+		count=0;
+		speed=0;
+		q=74;
+		i=0;
+		z=0;
+		n=0;
+		x=0;
+		v=0;
+
+	} 
+}
+ISR(INT2_vect)//���ܼ� Ȯ��
+{
+	v=1;
+	if(x+n+v==3)
+	{  
+		count=0;
+		speed=0;
+		q=74;
+		i=0;
+		z=0;
+		n=0;
+		x=0;
+		v=0;
+
+	}
+} 
+ISR(INT4_vect)// ���׸ӽ� ����
+{
+    if(x+n+v < 1)
+{
+}
+else 
+	{count=0;
+	speed=9;
+	cnt = 1;
+	q=0;
+	n=0;
+		x=0;
+		v=0;
+	 //�ð�����
+}
+} 
+ISR(INT5_vect) // �ӵ�����
+{ 
+	if(speed>1)
+	{
+		speed=speed-1;
+	}
+	else 
+	{
+		speed=1;
+	}
+}
+ISR(INT6_vect) //�ӵ�����
+{
+	if(speed<9)
+	{
+		speed=speed+1;
+
+	}
+	else
+	{
+		speed=9;
+	}
+}
+ISR(INT7_vect)// ���׸ӽ� ����
+{
+
+
+	count=0;
+	speed=0;
+	q=74;
+	i=0;
+	z=0;
+    
+
+
+}
+void main()
+
+{
+
+	PORTA = 0x00; //7-segment ��� ���� ����
+	DDRA = 0xFF; //  ��¼���
+
+	PORTC = 0xFF; // 7-segment ��� �ڸ� ���� ~0x08 �����ڸ�,~0x04 �����ڸ�, ~0x02 �����ڸ�, ~0x01 õ���ڸ�
+	DDRC = 0xFF; //
+
+	PORTE = 0x00; // BUTTON
+	DDRE = 0x00; //  �Է»���
+
+	PORTD = 0x00; // ���ܼ�
+	DDRD = 0x00; //  �Է»���
+
+	PORTB = 0x00; //LED
+	DDRB = 0xFF; //��»���	
+
+	PORTG=0x00; //�ø������
+	DDRG=0x03; //�ø������
+
+	PORTF = 0x00; // ���� 
+	DDRF = 0xFF; //��»���
+
+	UCSR0A = 0X00;//�ۼ��� ���� ����/ ���� ���� ���
+	UCSR0B = 0X00;
+	UCSR0C = 0X06;//���ۺ�Ʈ ���� 8bit
+	UBRR0L = 0X67;//baudrate ���� UBBR 103 -> 9600bps ���� 0.2
+	UBRR0H = 0X00;
+	UCSR0B = 0X18;//0001(RXENn �����㰡 ) 1000(TXENn �۽��㰡)
+	fdevopen(Putchar, Getchar);// 
+	printf("\n\r\n Now Start \n\r");
+	printf("If you want on push button 4 ...\n\r");
+
+	ADCSRA = 0x00; // select adc input 0
+	ADMUX = 0x01; // 1100 0111 -> A/D ��ȯ�� ���� �㰡
+	ADCSRA = 0xc7; // �ý��� �� ���ֺ� 128
+
+	EIFR =0x00; // �ʱ�Ʈ���� ����
+	EIMSK = 0xFF; //�ܺ����ͷ�Ʈ����
+	EICRA = 0xAA; // �����ϰ�
+	EICRB = 0xFF; // ���λ��
+	TCNT2 = 0xF6; //246 
+	TIMSK = 0xFF; 
+	TCCR2 = 0x05; //���ֺ�1024
+
+	sei();
+
+
+
+	while(1)
+	{
+
+
+		PORTC = ~0x08;
+		PORTA = segment_data[i%60%10]; //�ð����
+		_delay_ms(100);
+		PORTC = ~0x04;
+		PORTA = segment_data[i%60/10]; //�ð����
+		_delay_ms(100);
+		PORTC = ~0x02;
+		PORTA = segment_data[i/60%10]; //�ð����
+		_delay_ms(100);
+		PORTC = ~0x01;
+		PORTA = segment_data[i/60/10]; //�ð����
+		_delay_ms(100);
+
+		//�ӵ��� ���� �Ÿ� ����
+		if(speed == 9)
+		{z = z+2;
+		cal=cal+0.1;
+		}
+		else if (speed == 8)
+		{z = z+4;
+		cal=cal+0.2;
+		}
+		else if (speed == 7)
+		{z = z+6;
+		cal=cal+0.3;
+		}
+		else if (speed == 6)
+		{z = z+8;
+		cal=cal+0.4;
+		}
+		else if (speed == 5)
+		{z = z+10;
+		cal=cal+0.5;
+		}
+		else if (speed == 4)
+		{z = z+12;
+		cal=cal+0.6;
+		}
+		else if (speed == 3)
+		{z = z+14;
+		cal=cal+0.7;
+		}
+		else if (speed == 2)
+		{z = z+16;
+		cal=cal+0.8;
+		}
+		else if (speed == 1)
+		{z = z+18;
+		cal=cal+0.9;
+		}
+		//�Ÿ��� ����� LED ����
+		if(z<1000)
+		{
+			PORTB= 0x00;
+		}
+		else if(z>=1000 && z<2000)
+		{
+			PORTB= 0x01;
+		}
+		else if(z>=2000 && z<3000)
+		{
+			PORTB= 0x03;
+		}
+		else if(z>=3000 && z<4000)
+		{
+			PORTB= 0x07;
+		}
+		else if(z>=4000 && z<5000)
+		{
+			PORTB= 0x0F;
+		}
+		else if(z>=5000 && z<6000)
+		{
+			PORTB= 0x1F;
+		}
+		else if(z>=6000 && z<7000)
+		{
+			PORTB= 0x3F;
+		}
+		else if(z>=7000 && z<8000)
+		{
+			PORTB= 0x7F;
+		}
+		else if(z>=8000 && z<=9000)
+		{
+			PORTB= 0xFF;
+		}
+if(count== 0 &&	speed==0&& i==0 && z==0)
+{	printf("Running machine off ...\n");
+	printf("\nYou burnning %fcal\n",cal);
+}
+
+		//8�� �������� �ʱ�ȭ
+		if(z>9000)
+		{
+			z=0;
+		}
+
+	}
+
+}
